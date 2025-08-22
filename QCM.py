@@ -454,13 +454,35 @@ def process_directory(dir_path, targetfile='QCM Database.csv', fitall=False, ins
 
     print('Identifying portions of data for fitting...')
     for file in files:
-        # If the user wants, inspect the data and select the section for fitting
-        if inspect:
-            times, _, thics = load_QCM(os.path.join(dir_path, file))  # [s] _ [kAng]
-            start, end = select_fit_indices(times, thics)
-        else:  # Otherwise default to using the entire dataset
-            start = 0
-            end = len(thics)
+        # If the user wants to fit all the data files
+        if fitall:
+            # If the user wants to inspect the data, select the section for fitting
+            if inspect:
+                times, _, thics = load_QCM(os.path.join(dir_path, file))  # [s] _ [kAng]
+                start, end = select_fit_indices(times, thics)
+            # If the user does not want to inspect the data, check if the file has already been scanned
+            elif database['Filename'].str.contains(file).any(): 
+                row = database[database['Filename'] == file]
+                start = row['Start'][0]
+                end = row['End'][0]
+            else:  # Otherwise default to using the entire dataset
+                start = 0
+                end = len(thics)
+        # If the user only wants to fit unprocessed files
+        if not fitall:
+            # Reuse existing indicies if the file has already been scanned
+            if database['Filename'].str.contains(file).any(): 
+                row = database[database['Filename'] == file]
+                start = row['Start'].iloc[0]
+                end = row['End'].iloc[0]
+            # If the file has not been scanned, check if the user wants to inspect manually
+            elif inspect:
+                times, _, thics = load_QCM(os.path.join(dir_path, file))  # [s] _ [kAng]
+                start, end = select_fit_indices(times, thics)
+            else:  # Otherwise default to using the entire dataset
+                start = 0
+                end = len(thics)
+
         # Store the start and end indicies for each file
         start_dict[file] = start
         end_dict[file] = end
@@ -588,5 +610,5 @@ if __name__=="__main__":
     #print(os.getcwd())
     #QCM_df = QCM_construct_database(path, bkp_file='QCM Breakpoints.csv', targetfile='QCM Database.csv', fitall=False)
     dir_path = '/Users/braden/Documents/ProbeTools/Testbed'
-    process_directory(dir_path, fitall=True, inspect=True)
+    process_directory(dir_path, fitall=False, inspect=True)
     
