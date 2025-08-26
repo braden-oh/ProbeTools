@@ -433,7 +433,7 @@ def select_fit_indices(times, thics):
         return 0, len(times)
 
 
-def process_directory(dir_path, targetfile='QCM Database.csv', fitall=False, inspect=False):
+def process_directory(dir_path, targetfile='QCM Database.csv', fitall=False, interact=False):
     
     QCM_df = pd.DataFrame(columns=['Filename', 'Slope', 'Lower ci', 'Upper ci', 'y_int', 'Rate', 'Lower Rate', 
                                    'Upper Rate', 'Start', 'End', 'RANSAC_m', 'RANSAC_b', 'RANSAC Rate'])
@@ -458,7 +458,7 @@ def process_directory(dir_path, targetfile='QCM Database.csv', fitall=False, ins
         # If the user wants to fit all the data files
         if fitall:
             # If the user wants to inspect the data, select the section for fitting
-            if inspect:
+            if interact:
                 times, _, thics = load_QCM(os.path.join(dir_path, file))  # [s] _ [kAng]
                 start, end = select_fit_indices(times, thics)
             # If the user does not want to inspect the data, check if the file has already been scanned
@@ -477,7 +477,7 @@ def process_directory(dir_path, targetfile='QCM Database.csv', fitall=False, ins
                 start = row['Start'].iloc[0]
                 end = row['End'].iloc[0]
             # If the file has not been scanned, check if the user wants to inspect manually
-            elif inspect:
+            elif interact:
                 times, _, thics = load_QCM(os.path.join(dir_path, file))  # [s] _ [kAng]
                 start, end = select_fit_indices(times, thics)
             else:  # Otherwise default to using the entire dataset
@@ -610,13 +610,13 @@ if __name__=="__main__":
     parser.add_argument('dir_path', help="Directory containing QCM files")
     parser.add_argument('--targetfile', default='QCM Database.csv', help="Name of the database file to save")
     parser.add_argument('--fitall', action='store_true', help="Force re-fitting of all data")
-    parser.add_argument('--inspect', action='store_true', help="Interactively select fit indices")
+    parser.add_argument('--interact', action='store_true', help="Interactively select fit indices")
     args = parser.parse_args()
 
     process_directory(
         dir_path=args.dir_path,
         targetfile=args.targetfile,
         fitall=args.fitall,
-        inspect=args.inspect
+        interact=args.interact
     )
     
