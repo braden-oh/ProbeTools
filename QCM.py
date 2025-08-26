@@ -9,6 +9,7 @@ import pandas as pd
 import ruptures as rpt
 import pymc as pm
 from sklearn.linear_model import RANSACRegressor, LinearRegression
+import argparse
 
 def scan_dir(dir_path, extension, keyword):
     # Obtain a list of all .txt file names 
@@ -605,10 +606,17 @@ def plot_bayes_dir(dir_path, save=True, disp=True):
 
 
 if __name__=="__main__":
-    #path = '/Users/braden/Documents/Beam Catcher/2025 Spring Test Campaign/2025-08 Processing Folder/HCD Chris Test (GND beam dump)'
-    #os.chdir(path)
-    #print(os.getcwd())
-    #QCM_df = QCM_construct_database(path, bkp_file='QCM Breakpoints.csv', targetfile='QCM Database.csv', fitall=False)
-    dir_path = '/Users/braden/Documents/ProbeTools/Testbed'
-    process_directory(dir_path, fitall=False, inspect=True)
+    parser = argparse.ArgumentParser(description="Process QCM data files in a directory.")
+    parser.add_argument('dir_path', help="Directory containing QCM files")
+    parser.add_argument('--targetfile', default='QCM Database.csv', help="Name of the database file to save")
+    parser.add_argument('--fitall', action='store_true', help="Force re-fitting of all data")
+    parser.add_argument('--inspect', action='store_true', help="Interactively select fit indices")
+    args = parser.parse_args()
+
+    process_directory(
+        dir_path=args.dir_path,
+        targetfile=args.targetfile,
+        fitall=args.fitall,
+        inspect=args.inspect
+    )
     
