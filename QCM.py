@@ -556,6 +556,7 @@ def plot_RANSAC(dir_path, file, ransac, X, y):
     plt.plot(X_line, y_line, color='red', lw=2, label="RANSAC Fit")
     plt.xlabel("Time")
     plt.ylabel("Thickness")
+    plt.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
     plt.legend()
     os.makedirs(dir_path + '/Figures/RANSAC', exist_ok=True)
     plt.savefig(dir_path + '/Figures/RANSAC/' + file + '.png', dpi=300)
@@ -563,11 +564,12 @@ def plot_RANSAC(dir_path, file, ransac, X, y):
 
 def plot_bayes(dir_path, file, m, b, X, y, start, end):
     plt.plot(X, y, 'b.', alpha=0.25, label='All data')
-    plt.plot(X[start:end], y[start:end], 'r.', alpha=1, label='Data used for fit')
+    #plt.plot(X[start:end], y[start:end], 'r.', alpha=1, label='Data used for fit')
     plt.plot(X, m*X+b, 'r-')
     plt.title(file)
     plt.xlabel('Times [s]')
     plt.ylabel('Thickness [kAngstrom]')
+    plt.ticklabel_format(axis='y', style='sci', scilimits=(0, 0))
     plt.legend()
     os.makedirs(dir_path + '/Figures/Bayesian', exist_ok=True)
     plt.savefig(dir_path + '/Figures/Bayesian/' + file + '.png', dpi=300)

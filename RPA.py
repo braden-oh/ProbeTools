@@ -420,6 +420,11 @@ def RPA_extract_metadata(file):
         Exception('Unexpected format for angle in file ' + file)
     return angle, bias
 
+def mobileRPA_extract_metadata(file):
+    parts = file.split('_')
+    bias = int(parts[2].split('V')[0])
+
+
 
 # === Batch processing ===
 def RPA_construct_database(dir_path, fitall=True, maxbias=None):
@@ -454,6 +459,7 @@ def RPA_construct_database(dir_path, fitall=True, maxbias=None):
         print('Processing ' + file)
         full_path = os.path.join(dir_path, file)
         angle, bias = RPA_extract_metadata(full_path)
+
         savepath = os.path.join(figpath, file.split('.')[0]+'.png')
 
         if not fitall and RPA_df['Filename'].str.contains(file).any():
@@ -482,8 +488,8 @@ if __name__ == "__main__":
     #print(extract_MPV('FixedRPA_26-68deg_150V_1.hdf5'))
 
     """
-    path = '/Users/braden/Documents/Beam Catcher/2025 Spring Test Campaign/2025-07 Processing Folder/Varied Bias at 27 deg'
+    path = '/Users/braden/Documents/Beam Catcher/2025 Spring Test Campaign/2025-07 Processing Folder/Varied Bias at 27 deg/27deg_cant_ProbeArm'
     os.chdir(path)
     print(os.getcwd())
-    RPA_construct_database(path, fitall=False, maxbias=150)
+    RPA_construct_database(path, fitall=False, maxbias=175)
     
