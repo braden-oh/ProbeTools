@@ -1,0 +1,48 @@
+{
+  "trace_id": "kr_15sccm_18a",
+  "trace_path": "/Users/braden/Documents/ProbeTools/Testbed/Axial Langmuir/Kr_15sccm_18A.csv",
+  "bayesian_log_evidence": 1118.7699332241536,
+  "bayesian_diagnostics": {
+    "niter": 2230,
+    "ncall": 57182,
+    "efficiency": 3.9872687209261657,
+    "prior_bounds": {
+      "Vp": [
+        16.28650425,
+        20.99464136208624
+      ],
+      "ne": [
+        2.525983951637674e+16,
+        2.525983951637674e+18
+      ],
+      "Te": [
+        1.2794507160717408,
+        7.99656697544838
+      ],
+      "p": [
+        1.0,
+        3.0
+      ],
+      "I1": [
+        -0.000675676706011127,
+        0.000675676706011127
+      ],
+      "I2": [
+        -0.015452999999999998,
+        0.015452999999999998
+      ],
+      "log10_sigma_I": [
+        -7.288108450119421,
+        -2.288108450119421
+      ]
+    },
+    "fit_point_count": 120,
+    "original_point_count": 300,
+    "floating_potential_v": 9.91245285055168,
+    "fit_window_lower_v": -9.823256,
+    "fit_window_upper_v": 16.245132,
+    "fit_window_point_count": 120
+  },
+  "legacy_success": true,
+  "legacy_error": null
+}

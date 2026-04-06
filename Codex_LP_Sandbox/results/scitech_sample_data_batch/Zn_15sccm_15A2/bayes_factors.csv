@@ -1,0 +1,3 @@
+comparison,candidate_model,reference_model,log_bayes_factor,log10_bayes_factor,bayes_factor
+oml_vs_linear,oml,linear,-135.91504910000447,-59.02715583174147,9.393861834378497e-60
+transitional_vs_linear,transitional,linear,-142.1525203783509,-61.73605518895735,1.8363049758966505e-62

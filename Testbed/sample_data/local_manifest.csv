@@ -1,0 +1,9 @@
+trace_id,trace_path,file_format,voltage_selector,current_selector,gas,probe_geometry,probe_radius_m,probe_area_m2,flow_sccm,discharge_current_a,current_std_a,delimiter,notes
+kr_10sccm_10a,../Kr_10sccm_10A.csv,delimited,column:Bias Voltage (V),column:Probe Current (A),Kr,cylindrical,2.54e-05,4.0739276835807376e-07,10,10,,	,"Local two-column krypton Langmuir trace"
+kr_10sccm_10a2,../Kr_10sccm_10A2.csv,delimited,column:Bias Voltage (V),column:Probe Current (A),Kr,cylindrical,2.54e-05,4.0739276835807376e-07,10,10,,	,"Local two-column krypton Langmuir trace replicate"
+lp_33_34deg_150v,../LP_33-34deg_150V.hdf5,hdf5_matrix,dataset:Data:0,dataset:Data:1,Kr,cylindrical,2.54e-05,4.0739276835807376e-07,,,,,"Local HDF5 matrix example"
+lp_15sccm_10a1,../LP_15sccm_10A1.txt,delimited,column:Bias Voltage (V),column:Probe Current (A),Kr,cylindrical,0.000127,4.773184453098428e-06,15,10,,	,"SciTech-style 15 sccm krypton LP trace using 0.233 x 0.010 in probe geometry"
+lp_15sccm_15a1,../LP_15sccm_15A1.txt,delimited,column:Bias Voltage (V),column:Probe Current (A),Kr,cylindrical,0.000127,4.773184453098428e-06,15,15,,	,"SciTech-style 15 sccm krypton LP trace using 0.233 x 0.010 in probe geometry"
+lp_15sccm_20a1,../LP_15sccm_20A1.txt,delimited,column:Bias Voltage (V),column:Probe Current (A),Kr,cylindrical,0.000127,4.773184453098428e-06,15,20,,	,"SciTech-style 15 sccm krypton LP trace using 0.233 x 0.010 in probe geometry"
+lp_15sccm_25a1,../LP_15sccm_25A1.txt,delimited,column:Bias Voltage (V),column:Probe Current (A),Kr,cylindrical,0.000127,4.773184453098428e-06,15,25,,	,"SciTech-style 15 sccm krypton LP trace using 0.233 x 0.010 in probe geometry"
+lp_15sccm_30a2,../LP_15sccm_30A2.txt,delimited,column:Bias Voltage (V),column:Probe Current (A),Kr,cylindrical,0.000127,4.773184453098428e-06,15,30,,	,"SciTech-style 15 sccm krypton LP trace; current appears saturated near +/-0.1 A"

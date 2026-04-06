@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 from scipy.optimize import curve_fit
-from sklearn.ensemble import IsolationForest
 import matplotlib.pyplot as plt
 from scipy.ndimage import median_filter
 import pymc as pm
@@ -26,76 +25,299 @@ process_RPA_directory(folder, lowerVoltage=0, plot=False)
 
 """
 
+#===================================================
 
-def gauss(x, amp, center, width):
-    return amp * np.exp(-((x - center) ** 2) / (2 * width ** 2))
-
-def residual_outliers(y, window_length=31, polyorder=2, threshold=3.0):
-    """
-    Flags outliers based on deviation from a Savitzky-Golay smoothed curve.
-
-    Parameters:
-    - y: 1D array of raw signal data
-    - window_length: size of the S-G smoothing window (odd integer)
-    - polyorder: degree of polynomial to use in smoothing
-    - threshold: number of standard deviations to use for cutoff
-
+def MAD_outlier_filter(x, y, window=21):
+    """Median Absolute Deviation (MAD) outlier detection filter for use
+    on raw RPA traces to remove anomalous current spikes during the sweep.
+    Args:
+        x (array): raw x values
+        y (array): raw y values
+        window (int): odd numbered window size to compute median within
     Returns:
-    - mask: boolean array where True = outlier
+        x (array): cleaned x values
+        y (array): cleaned y values
     """
-    if window_length >= len(y):
-        window_length = len(y) - 1 if len(y) % 2 == 0 else len(y)
-    if window_length % 2 == 0:
-        window_length += 1  # must be odd
+    halfwin = window // 2
+    def clean(arr):
+        outlier_indices = []
+        for i in range(len(arr)):
+            start = max(0, i - halfwin)
+            end = min(len(arr), i + halfwin + 1)
+            local_window = arr[start:end]
+            local_median = np.median(local_window)
+            local_mad = np.median(np.abs(local_window - local_median))
+            if local_mad == 0:
+                continue
+            if np.abs(arr[i] - local_median) > 5 * local_mad:
+                outlier_indices.append(i)
+        outlier_indices = np.array(outlier_indices)
+        # Return the keep_indicies array
+        return np.setdiff1d(np.arange(len(arr)), outlier_indices)
+    
+    # --- Clean the data over the y-axis data ---
+    keep_indices = clean(y)
+    x_clean = x[keep_indices]
+    y_clean = y[keep_indices]
+    # --- Clean the data over the x-axis data ---
+    keep_indices = clean(x_clean)
+    x_clean = x_clean[keep_indices]
+    y_clean = y_clean[keep_indices]
+    # --- Remove *duplicate* voltages (keeping the first instance) ---
+    _, unique_indices = np.unique(x_clean, return_index=True)
+    x = x_clean[sorted(unique_indices)]
+    y = y_clean[sorted(unique_indices)]
+    return x, y
 
-    smoothed = savgol_filter(y, window_length=window_length, polyorder=polyorder, mode='interp')
-    residuals = y - smoothed
-    sigma = np.std(residuals)
+#===================================================
 
-    return np.abs(residuals) < threshold * sigma
-
-def movmedian_outliers(y, window_size=25, threshold=4):
-    """
-    Replicates MATLAB's isoutlier(y, 'movmedian', window_size).
-    Flags values that deviate more than `threshold` * MAD from local median.
-
-    Parameters:
-    - y: input 1D array
-    - window_size: size of the moving window (should be odd)
-    - threshold: multiple of MAD to use as outlier criterion
-
+def fit_dual_erf(x, y, savepath=None, bias=None, max_x=None, ):
+    """Fits sum of two error functions to a filtered RPA trace using MCMC.
+     This function should be used when distinct low energy (<50V) and high
+     energy populations of ions are expected (as in the beam catcher).
+     * Note that the priors for x0 have hard-coded limits that may need editing.
+    Args:
+        x (array): x data for fitting
+        y (array): y data for fitting
+        savepath (str): path (including filename) to save output graph to
+        bias (float): beam catcher bias (limits high energy x0 prior for stability)
+        max_x (float): x value beyond which to ignore data
     Returns:
-    - mask: boolean array where True indicates an outlier
+        (array): [
+            x01_m (float) low energy center mean,
+            x01_l (float) low energy center 95% credible interval lower bound,
+            x01_u (float) low energy center 95% credible interval upper bound,
+            x01_m_cur (float) low energy center mean current,
+            x01_l_cur (float) low energy current 95% credible interval lower bound,
+            x01_u_cur (float) low energy current 95% credible interval upper bound,
+            x02_m, x02_l, x02_u, x02_m_cur, x02_l_cur, x02_u_cur
+        ]            
     """
-    if window_size % 2 == 0:
-        window_size += 1  # ensure window is odd
+    # --- 1. Cut out data above a max threshold ---
+    if max_x:
+        mask = x < max_x
+        x = x[mask]
+        y = y[mask]
+    # --- 2. Normalize the data in y ---
+    y_min = np.min(y)
+    y_max = np.max(y)
+    y_norm = (y - y_min) / (y_max - y_min)
 
-    median_y = median_filter(y, size=window_size, mode='nearest')
-    deviation = np.abs(y - median_y)
-    mad = np.median(deviation)
+    # --- 3. Define the double error function we'll fit to the data ---
+    def double_error_func_tensor(x, A1, x01, sigma1, A2, x02, sigma2, C):
+        term1 = A1/2 * (1 - pt.erf((x - x01)/(np.sqrt(2)*sigma1)))
+        term2 = A2/2 * (1 - pt.erf((x - x02)/(np.sqrt(2)*sigma2)))
+        return term1 + term2 + C
 
-    # Scale MAD to be consistent with standard deviation for normal data
-    scaled_mad = 1.4826 * mad
+    def double_error_func(x, A1, x01, sigma1, A2, x02, sigma2, C):
+        term1 = A1/2 * (1 - erf((x - x01)/(np.sqrt(2)*sigma1)))
+        term2 = A2/2 * (1 - erf((x - x02)/(np.sqrt(2)*sigma2)))
+        return term1 + term2 + C
 
-    return deviation < threshold * scaled_mad
+    # --- 4. Set up the priors ---
+    with pm.Model() as model:
+        # Low energy priors
+        A1 = pm.HalfNormal("A1", sigma=1)
+        x01 = pm.Uniform("x01", lower=min(x), upper=50)
+        sigma1 = pm.HalfNormal("sigma1", sigma=20)
+        # High energy priors
+        A2 = pm.HalfNormal("A2", sigma=1)
+        if bias is not None:  x02 = pm.Uniform("x02", lower=30, upper=float(bias)) # Center cannot be higher than bias
+        else: x02 = pm.Uniform("x02", lower=30, upper=max(x))   # If bias is not given, search the whole range
+        #x02 = pm.Uniform("x02", lower=30, upper=biasfloat)
+        sigma2 = pm.HalfNormal("sigma2", sigma=20)
+        # Vertical offset parameter
+        C = pm.Normal("C", mu=0, sigma=0.1)
+        
+        mu = double_error_func_tensor(x, A1, x01, sigma1, A2, x02, sigma2, C)
+        
+        sigma_noise = pm.HalfNormal("sigma_noise", sigma=0.05)
+        y_obs = pm.Normal("y_obs", mu=mu, sigma=sigma_noise, observed=y_norm)
+        
+        # --- 5. Run the MCMC ---
+        #print(model.initial_point())
+        trace = pm.sample(2000, tune=1000, target_accept=0.95, return_inferencedata=True)
+
+    # --- 6. Unscale the model ---
+    # Use median or mean posterior values for prediction
+    A1_m = trace.posterior['A1'].mean().item()
+    x01_m = trace.posterior['x01'].mean().item()
+    sigma1_m = trace.posterior['sigma1'].mean().item()
+    A2_m = trace.posterior['A2'].mean().item()
+    x02_m = trace.posterior['x02'].mean().item()
+    sigma2_m = trace.posterior['sigma2'].mean().item()
+    C_m = trace.posterior['C'].mean().item()
+    # Model in normalized space:
+    model_fit_norm = double_error_func(x, A1_m, x01_m, sigma1_m, A2_m, x02_m, sigma2_m, C_m)
+    # Unscale to original units:
+    model_fit = model_fit_norm * (y_max - y_min) + y_min
+
+    # --- 7. Plot for comparison ---
+    if savepath is not None:
+        plt.figure()
+        plt.plot(x, y, 'b.', label='Raw Data')
+        plt.plot(x, model_fit, label='Posterior Fit', linewidth=1)
+        plt.xlabel('Voltage [V]')
+        plt.ylabel('Current Current [A]')
+        plt.legend()
+        plt.savefig(savepath, dpi=300)
+        plt.close()
+
+    # --- 8. Do statistics and retrieve current values ---
+    x01_samples = trace.posterior["x01"].values.flatten()
+    x01_l, x01_u = np.percentile(x01_samples,[2.5,97.5])    # Compute 95% confidence interval bounds
+
+    x01_m_cur = y[np.abs(x - x01_m).argmin()]    # Mean current
+    x01_l_cur = y[np.abs(x - x01_u).argmin()]    # Lower current bound (from upper MPV)
+    x01_u_cur = y[np.abs(x - x01_l).argmin()]    # Upper current bound (from lower MPV)
+
+    x02_samples = trace.posterior["x02"].values.flatten()
+    x02_l, x02_u = np.percentile(x02_samples,[2.5,97.5])    # Compute 95% confidence interval bounds
+
+    #x02_m_cur = y[np.abs(x - x02_m).argmin()]    # Mean current
+    idx = np.abs(x - x02_m).argmin()    # Index of mean current
+    x02_m_cur = np.mean(y[idx-5:idx+5])
+    #x02_l_cur = y[np.abs(x - x02_u).argmin()]    # Lower current bound (from upper MPV)
+    idx = np.abs(x - x02_u).argmin()    # Index of mean current
+    x02_l_cur = np.mean(y[idx-5:idx+5])
+    #x02_u_cur = y[np.abs(x - x02_l).argmin()]    # Upper current bound (from lower MPV)
+    idx = np.abs(x - x02_l).argmin()    # Index of mean current
+    x02_u_cur = np.mean(y[idx-5:idx+5])
+
+    print(f"V01 (low energy center): mean={x01_m:.2f} V, 95% CI=({x01_l}, {x01_u})")
+    print(f"V02 (high energy center): mean={x02_m:.2f} V, 95% CI=({x02_l}, {x02_u})")
+
+    return [x01_m, x01_l, x01_u, x01_m_cur, x01_l_cur, x01_u_cur, 
+            x02_m, x02_l, x02_u, x02_m_cur, x02_l_cur, x02_u_cur]
+
+#===================================================
+
+def fit_erf(x, y, savepath=None, max_x=None):
+    """Fits single error function to a filtered RPA trace using MCMC.
+     This function should be used when a single population of energetic
+     ions is expected.
+    Args:
+        x (array): x data for fitting
+        y (array): y data for fitting
+        savepath (str): path (including filename) to save output graph to
+        max_x (float): x value beyond which to ignore data
+    Returns:
+        (array): [
+            x0_m (float): center mean,
+            x0_l (float): center 95% credible interval lower bound,
+            x0_u (float): center 95% credible interval upper bound,
+            fit_params (array): [A, x0, sigma, C] mean erf/Gaussian fit parameters (unscaled)
+        ]            
+    """
+    # --- 1. Cut out data above a max threshold ---
+    if max_x:
+        mask = x < max_x
+        x = x[mask]
+        y = y[mask]
+    # --- 2. Normalize the data ---
+    y_min = np.min(y)
+    y_max = np.max(y)
+    y_norm = (y - y_min) / (y_max - y_min)
+
+    # --- 3. Define the single error function we'll fit to the data ---
+    def single_error_func_tensor(x, A, x0, sigma, C):
+        return A/2 * (1 - pt.erf((x - x0)/(np.sqrt(2)*sigma))) + C
+
+    def single_error_func(x, A, x0, sigma, C):
+        return A/2 * (1 - erf((x - x0)/(np.sqrt(2)*sigma))) + C
+
+    # --- 4. Set up the priors ---
+    with pm.Model() as model:
+        # Gaussian Priors
+        A = pm.HalfNormal("A", sigma=1)
+        x0 = pm.Uniform("x0", lower=min(x), upper=max(x))
+        sigma = pm.HalfNormal("sigma", sigma=20)
+        # Vertical offset parameter
+        C = pm.Normal("C", mu=0, sigma=0.1)
+        
+        mu = single_error_func_tensor(x, A, x0, sigma, C)
+        
+        sigma_noise = pm.HalfNormal("sigma_noise", sigma=0.05)
+        y_obs = pm.Normal("y_obs", mu=mu, sigma=sigma_noise, observed=y_norm)
+        
+        # --- 5. Run the MCMC ---
+        trace = pm.sample(2000, tune=1000, target_accept=0.95, return_inferencedata=True)
+
+    # --- 6. Unscale the model & Compute Credible Interval ---
+    
+    # Extract flattened posterior samples for all parameters
+    A_samples = trace.posterior['A'].values.flatten()
+    x0_samples = trace.posterior['x0'].values.flatten()
+    sigma_samples = trace.posterior['sigma'].values.flatten()
+    C_samples = trace.posterior['C'].values.flatten()
+
+    # Calculate the mean prediction (what you originally had)
+    A_m, x0_m, sigma_m, C_m = A_samples.mean(), x0_samples.mean(), sigma_samples.mean(), C_samples.mean()
+    model_fit_norm_mean = single_error_func(x, A_m, x0_m, sigma_m, C_m)
+    model_fit_mean = model_fit_norm_mean * (y_max - y_min) + y_min
+
+    # Calculate predictions across the entire posterior distribution
+    # We use np.newaxis to broadcast shapes: x becomes (N, 1) and samples become (1, M)
+    # The output will be a 2D array of shape (N_data_points, N_samples)
+    X_grid = x[:, np.newaxis]
+    all_fits_norm = single_error_func(
+        X_grid, 
+        A_samples[np.newaxis, :], 
+        x0_samples[np.newaxis, :], 
+        sigma_samples[np.newaxis, :], 
+        C_samples[np.newaxis, :]
+    )
+    
+    # Unscale all the fitted curves to original units
+    all_fits = all_fits_norm * (y_max - y_min) + y_min
+
+    # Calculate the 2.5% and 97.5% percentiles at each x data point (95% Credible Interval)
+    fit_lower = np.percentile(all_fits, 2.5, axis=1)
+    fit_upper = np.percentile(all_fits, 97.5, axis=1)
+
+    # --- 7. Plot for comparison ---
+    if savepath is not None:
+        plt.figure()
+        plt.plot(x, y, 'b.', label='Raw Data', markersize=4)
+        
+        # Plot the 95% Credible Interval band
+        plt.fill_between(x, fit_lower, fit_upper, color='orange', alpha=0.4, label='95% Credible Interval')
+        
+        # Plot the mean fit on top
+        plt.plot(x, model_fit_mean, 'k-', label='Mean Posterior Fit')
+        
+        plt.xlabel('Voltage [V]')
+        plt.ylabel('Current [A]') # (Note: Fixed a small 'Current Current' typo here)
+        plt.legend()
+        plt.savefig(savepath, dpi=300)
+        plt.close()
+
+    # --- 8. Do statistics and retrieve current values ---
+    x0_samples = trace.posterior["x0"].values.flatten()
+    x0_l, x0_u = np.percentile(x0_samples,[2.5,97.5])    # Compute 95% confidence interval bounds
+
+    x0_m_cur = y[np.abs(x - x0_m).argmin()]    # Mean current
+    x0_l_cur = y[np.abs(x - x0_u).argmin()]   # Lower current bound (from upper MPV)
+    x0_u_cur = y[np.abs(x - x0_l).argmin()]   # Upper current bound (from lower MPV)
+
+    print(f"V0 (low energy center): mean={x0_m:.2f} V, 95% CI=({x0_l}, {x0_u})")
+
+    # Rescale the y-axis fit parameters prior to returning
+    fit_params = [A_m * (y_max - y_min) + y_min, 
+                  x0_m, sigma_m, 
+                  C_m * (y_max - y_min) + y_min]
+    return [x0_m, x0_l, x0_u, fit_params]
+
+#===================================================
+
+
+#==============================================================================================================
+# SIMPLE REGRESSION FIT
+#==============================================================================================================
 
 # Define the Gaussian function (with baseline, c)
 def gaussian(x, a, x0, sigma, c):
     return a * np.exp(-(x - x0) ** 2 / (2 * sigma ** 2)) + c
-
-def build_savename(filepath):
-    file = filepath.split('/')[-1]
-    _, bias = RPA_extract_metadata(filepath)
-    angle = file.split('_')[1]
-    if file.split('_')[-1][1] == '.':
-        savename = 'RPA ' + angle + ' ' + str(bias) + 'V ' + file.split('_')[-1][0] + ' '
-    else:
-        savename = 'RPA ' + angle + ' ' + str(bias) + 'V '
-    return savename
-
-
-#==============================================================================================================
-#==============================================================================================================
 
 def regression_gaussfit(x, y, bias, savepath=None, center_guess=None):
     # Initial guesses: [amplitude, center, width, baseline]

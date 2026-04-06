@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orsini-lp"
+version = "0.1.0"
+description = "Bayesian Langmuir probe analysis using the Orsini EEDF deconvolution approach."
+requires-python = ">=3.11"
+dependencies = [
+  "arviz>=0.22",
+  "dynesty>=3.0",
+  "h5py>=3.10",
+  "matplotlib>=3.8",
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "scipy>=1.12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+orsini-lp = "orsini_lp.cli:main"
+orsini-lp-semilog = "orsini_lp.semilog:main"
+
+[tool.setuptools.packages.find]
+include = ["orsini_lp*"]

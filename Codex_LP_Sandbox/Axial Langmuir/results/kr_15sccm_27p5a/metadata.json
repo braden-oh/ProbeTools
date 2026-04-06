@@ -1,0 +1,48 @@
+{
+  "trace_id": "kr_15sccm_27p5a",
+  "trace_path": "/Users/braden/Documents/Bismuth Cathode/2026-03 Zn-Kr Campaign/Orsini_test_directory/Axial Langmuir/Kr_15sccm_27p5A.csv",
+  "bayesian_log_evidence": 755.2721468914552,
+  "bayesian_diagnostics": {
+    "niter": 2085,
+    "ncall": 54185,
+    "efficiency": 3.9217495616868137,
+    "prior_bounds": {
+      "Vp": [
+        17.122749,
+        21.5713435878866
+      ],
+      "ne": [
+        3.704786571710465e+16,
+        3.7047865717104645e+18
+      ],
+      "Te": [
+        1.2599177300539255,
+        7.874485812837034
+      ],
+      "p": [
+        1.0,
+        3.0
+      ],
+      "I1": [
+        -0.0009983746078352795,
+        0.0009983746078352795
+      ],
+      "I2": [
+        -0.022833,
+        0.022833
+      ],
+      "log10_sigma_I": [
+        -7.1185582780586065,
+        -2.118558278058607
+      ]
+    },
+    "fit_point_count": 80,
+    "original_point_count": 300,
+    "floating_potential_v": 11.094745549484534,
+    "fit_window_lower_v": -9.824155,
+    "fit_window_upper_v": 17.081373,
+    "fit_window_point_count": 80
+  },
+  "legacy_success": true,
+  "legacy_error": null
+}

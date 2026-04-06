@@ -1,0 +1,7 @@
+,Filename,Propellant,Flow [sccm],Discharge Current [A],Probe
+0,Kr_10sccm_30A_LP.csv,Kr,10.0,30.0,Langmuir
+1,Kr_10sccm_10A_LP2.csv,Kr,10.0,10.0,Langmuir
+2,Kr_10sccm_20A_RPA2.csv,Kr,10.0,20.0,RPA
+3,Kr_10sccm_10A_RPA2.csv,Kr,10.0,10.0,RPA
+4,Kr_10sccm_20A_LP2.csv,Kr,10.0,20.0,Langmuir
+5,Kr_10sccm_30A_RPA.csv,Kr,10.0,30.0,RPA

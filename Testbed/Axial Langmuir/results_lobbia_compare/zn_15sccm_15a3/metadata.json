@@ -1,0 +1,48 @@
+{
+  "trace_id": "zn_15sccm_15a3",
+  "trace_path": "/Users/braden/Documents/ProbeTools/Testbed/Axial Langmuir/Zn_15sccm_15A3.csv",
+  "bayesian_log_evidence": 1094.0180310243293,
+  "bayesian_diagnostics": {
+    "niter": 1899,
+    "ncall": 48245,
+    "efficiency": 4.039796870141983,
+    "prior_bounds": {
+      "Vp": [
+        11.431845749999999,
+        14.826060647736341
+      ],
+      "ne": [
+        4.819492933806549e+16,
+        4.819492933806549e+18
+      ],
+      "Te": [
+        0.9701148945416402,
+        6.063218090885252
+      ],
+      "p": [
+        1.0,
+        3.0
+      ],
+      "I1": [
+        -0.0010970289869544653,
+        0.0010970289869544653
+      ],
+      "I2": [
+        -0.025089,
+        0.025089
+      ],
+      "log10_sigma_I": [
+        -7.0776379032152095,
+        -2.07763790321521
+      ]
+    },
+    "fit_point_count": 120,
+    "original_point_count": 300,
+    "floating_potential_v": 6.809691803018212,
+    "fit_window_lower_v": -9.823538,
+    "fit_window_upper_v": 11.390474,
+    "fit_window_point_count": 120
+  },
+  "legacy_success": true,
+  "legacy_error": null
+}

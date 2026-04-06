@@ -1,0 +1,2 @@
+trace_id,trace_path,gas,probe_geometry,probe_radius_m,probe_area_m2,flow_sccm,discharge_current_a,point_count
+kr_15sccm_17p5a,/Users/braden/Documents/Bismuth Cathode/2026-03 Zn-Kr Campaign/Orsini_test_directory/Axial Langmuir/Kr_15sccm_17p5A.csv,Kr,cylindrical,2.54e-05,4.0739281319438817e-07,15.0,17.5,300

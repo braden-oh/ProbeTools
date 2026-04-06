@@ -1,0 +1,5 @@
+Filename,Te_eV,Te_uncertainty_eV,Vp_V,Vp_uncertainty_V
+Zn_15sccm_15A.csv,2.0522,0.0246,11.0985,0.5669
+Zn_15sccm_15A2.csv,2.3118,0.2574,14.0455,1.7167
+Zn_15sccm_15A3.csv,1.0791,0.0135,11.3481,0.2185
+Zn_15sccm_15A4.csv,6.9271,0.0374,41.4983,0.0666

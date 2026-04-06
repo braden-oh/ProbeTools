@@ -1,0 +1,2 @@
+trace_id,trace_path,gas,probe_geometry,probe_radius_m,probe_area_m2,flow_sccm,discharge_current_a,point_count
+kr_15sccm_16a,/Users/braden/Documents/ProbeTools/Testbed/Axial Langmuir/Kr_15sccm_16A.csv,Kr,cylindrical,2.54e-05,4.0739281319438817e-07,15.0,16.0,300
